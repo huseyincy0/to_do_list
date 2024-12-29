@@ -254,7 +254,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final appBarHeight = AppBar().preferredSize.height;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Gelişmiş ToDo List'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -320,249 +325,254 @@ class _TodoListScreenState extends State<TodoListScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Görev ara...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                      offset: const Offset(0, 3),
                     ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Görev ara...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _controller,
+                      decoration: InputDecoration(
+                        hintText: 'Yeni görev ekle',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _descriptionController,
+                      decoration: InputDecoration(
+                        hintText: 'Açıklama',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _tagsController,
+                      decoration: InputDecoration(
+                        hintText: 'Etiketler (virgülle ayırın)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButton<String>(
+                            value: _selectedCategory,
+                            isExpanded: true,
+                            items: _categories.map((Category category) {
+                              return DropdownMenuItem<String>(
+                                value: category.name,
+                                child: Row(
+                                  children: [
+                                    Icon(category.icon),
+                                    const SizedBox(width: 8),
+                                    Text(category.name),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (String? value) {
+                              setState(() {
+                                _selectedCategory = value ?? 'Genel';
+                                _selectedSubCategory = null;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButton<String?>(
+                            value: _selectedSubCategory,
+                            isExpanded: true,
+                            hint: const Text('Alt Kategori'),
+                            items: _categories
+                                .firstWhere((cat) => cat.name == _selectedCategory)
+                                .subCategories
+                                .map((String subCategory) {
+                              return DropdownMenuItem<String>(
+                                value: subCategory,
+                                child: Text(subCategory),
+                              );
+                            }).toList(),
+                            onChanged: (String? value) {
+                              setState(() {
+                                _selectedSubCategory = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButton<Priority>(
+                            value: _selectedPriority,
+                            isExpanded: true,
+                            items: Priority.values.map((Priority priority) {
+                              return DropdownMenuItem<Priority>(
+                                value: priority,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.flag,
+                                      color: priority == Priority.high
+                                          ? Colors.red
+                                          : priority == Priority.normal
+                                              ? Colors.blue
+                                              : Colors.green,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(priority.toString().split('.').last),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (Priority? value) {
+                              setState(() {
+                                _selectedPriority = value ?? Priority.normal;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _selectDate(context),
+                            icon: const Icon(Icons.calendar_today),
+                            label: Text(
+                              _selectedDate == null
+                                  ? 'Tarih Seç'
+                                  : DateFormat('dd/MM/yyyy HH:mm').format(_selectedDate!),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _addTodo(_controller.text),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Ekle'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                height: screenHeight - (appBarHeight + 450 + keyboardHeight),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: _filteredTodos.length,
+                  itemBuilder: (context, index) {
+                    final todo = _filteredTodos[index];
+                    return Card(
+                      color: _getPriorityColor(todo.priority),
+                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: Checkbox(
+                          value: todo.isCompleted,
+                          onChanged: (bool? value) => _toggleTodoStatus(index),
+                        ),
+                        title: Text(
+                          todo.title,
+                          style: TextStyle(
+                            decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${todo.category}${todo.subCategory != null ? ' > ${todo.subCategory}' : ''}'),
+                            if (todo.dueDate != null)
+                              Text('Tarih: ${DateFormat('dd/MM/yyyy HH:mm').format(todo.dueDate!)}'),
+                            if (todo.tags.isNotEmpty)
+                              Wrap(
+                                spacing: 4,
+                                children: todo.tags.map((tag) => Chip(
+                                  label: Text(tag, style: const TextStyle(fontSize: 10)),
+                                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                  padding: EdgeInsets.zero,
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                )).toList(),
+                              ),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.info_outline),
+                              onPressed: () => _showTaskDetails(todo),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => _removeTodo(index),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _showTaskDetails(todo),
+                      ),
+                    );
                   },
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _controller,
-                  decoration: InputDecoration(
-                    hintText: 'Yeni görev ekle',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(
-                    hintText: 'Açıklama',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _tagsController,
-                  decoration: InputDecoration(
-                    hintText: 'Etiketler (virgülle ayırın)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButton<String>(
-                        value: _selectedCategory,
-                        isExpanded: true,
-                        items: _categories.map((Category category) {
-                          return DropdownMenuItem<String>(
-                            value: category.name,
-                            child: Row(
-                              children: [
-                                Icon(category.icon),
-                                const SizedBox(width: 8),
-                                Text(category.name),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (String? value) {
-                          setState(() {
-                            _selectedCategory = value ?? 'Genel';
-                            _selectedSubCategory = null;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: DropdownButton<String?>(
-                        value: _selectedSubCategory,
-                        isExpanded: true,
-                        hint: const Text('Alt Kategori'),
-                        items: _categories
-                            .firstWhere((cat) => cat.name == _selectedCategory)
-                            .subCategories
-                            .map((String subCategory) {
-                          return DropdownMenuItem<String>(
-                            value: subCategory,
-                            child: Text(subCategory),
-                          );
-                        }).toList(),
-                        onChanged: (String? value) {
-                          setState(() {
-                            _selectedSubCategory = value;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButton<Priority>(
-                        value: _selectedPriority,
-                        isExpanded: true,
-                        items: Priority.values.map((Priority priority) {
-                          return DropdownMenuItem<Priority>(
-                            value: priority,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.flag,
-                                  color: priority == Priority.high
-                                      ? Colors.red
-                                      : priority == Priority.normal
-                                          ? Colors.blue
-                                          : Colors.green,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(priority.toString().split('.').last),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (Priority? value) {
-                          setState(() {
-                            _selectedPriority = value ?? Priority.normal;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _selectDate(context),
-                        icon: const Icon(Icons.calendar_today),
-                        label: Text(
-                          _selectedDate == null
-                              ? 'Tarih Seç'
-                              : DateFormat('dd/MM/yyyy HH:mm').format(_selectedDate!),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _addTodo(_controller.text),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Ekle'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: _filteredTodos.length,
-              itemBuilder: (context, index) {
-                final todo = _filteredTodos[index];
-                return Card(
-                  color: _getPriorityColor(todo.priority),
-                  elevation: 2,
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: Checkbox(
-                      value: todo.isCompleted,
-                      onChanged: (bool? value) => _toggleTodoStatus(index),
-                    ),
-                    title: Text(
-                      todo.title,
-                      style: TextStyle(
-                        decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${todo.category}${todo.subCategory != null ? ' > ${todo.subCategory}' : ''}'),
-                        if (todo.dueDate != null)
-                          Text('Tarih: ${DateFormat('dd/MM/yyyy HH:mm').format(todo.dueDate!)}'),
-                        if (todo.tags.isNotEmpty)
-                          Wrap(
-                            spacing: 4,
-                            children: todo.tags.map((tag) => Chip(
-                              label: Text(tag, style: const TextStyle(fontSize: 10)),
-                              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                              padding: EdgeInsets.zero,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            )).toList(),
-                          ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.info_outline),
-                          onPressed: () => _showTaskDetails(todo),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _removeTodo(index),
-                        ),
-                      ],
-                    ),
-                    onTap: () => _showTaskDetails(todo),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
